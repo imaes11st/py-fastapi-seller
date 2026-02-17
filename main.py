@@ -2,9 +2,10 @@ from fastapi import FastAPI
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from models import Customer, CustomerCreate, Transaction, Invoice
-from  db import SessionDep
+from  db import SessionDep, create_all_tables
+from sqlmodel import select
     
-app = FastAPI()
+app = FastAPI(lifespan=create_all_tables)
 
 @app.get("/")
 async def root():
@@ -37,14 +38,14 @@ db_customers: list[Customer] = []
 @app.post('/customer', response_model=Customer)
 async def create_customer(customer_data: CustomerCreate, session: SessionDep):
     customer = Customer.model_validate(customer_data.model_dump())
-    # Asumiendo que lo hace la bd
-    customer.id = len(db_customers)
-    db_customers.append(customer)
+    session.add(customer)
+    session.commit()
+    session.refresh(customer)
     return customer
 
 @app.get('/customers', response_model=list[Customer])
-async def list_customers():
-    return db_customers
+async def list_customers(session: SessionDep):
+    return session.exec(Customer.select(Customer)).all()
 
 #TRANSACTION
 @app.get('/transaction')
