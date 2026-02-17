@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from models import Customer, CustomerCreate, Transaction, Invoice
@@ -35,7 +36,7 @@ async def time(iso_code: str):
 
 db_customers: list[Customer] = []
 
-@app.post('/customer', response_model=Customer)
+@app.post('/customers', response_model=Customer)
 async def create_customer(customer_data: CustomerCreate, session: SessionDep):
     customer = Customer.model_validate(customer_data.model_dump())
     session.add(customer)
@@ -43,18 +44,38 @@ async def create_customer(customer_data: CustomerCreate, session: SessionDep):
     session.refresh(customer)
     return customer
 
+@app.get('/customers/{customer_id}', response_model=Customer)
+async def read_customer(customer_id: int, session: SessionDep):
+    customer_db = session.get(Customer, customer_id)
+    if not customer_db:
+        raise HTTPException (
+            status_code=status.HTTP_404_NOT_FOUND, detail="Customer does not exist"
+        ) 
+    return customer_db
+
+@app.delete('/customers/{customer_id}')
+async def delete_customer(customer_id: int, session: SessionDep):
+    customer_db = session.get(Customer, customer_id)
+    if not customer_db:
+        raise HTTPException (
+            status_code=status.HTTP_404_NOT_FOUND, detail="Customer does not exist"
+        ) 
+    session.delete(customer_db)
+    session.commit()
+    return {"detail": "Customer deleted successfully"}
+
 @app.get('/customers', response_model=list[Customer])
-async def list_customers(session: SessionDep):
-    return session.exec(Customer.select(Customer)).all()
+async def list_customer(session: SessionDep):
+    return session.exec(select(Customer)).all()
 
 #TRANSACTION
-@app.get('/transaction')
+@app.post('/transactions')
 async def create_transaction(transaction_data: Transaction):
     
     return transaction_data
 
 #INVOICE
-@app.get('/invoice')
+@app.post('/invoices')
 async def create_invoice(invoice_data: Invoice):
     
     return invoice_data
