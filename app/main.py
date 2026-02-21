@@ -1,6 +1,9 @@
+from http.client import HTTPException
 import time
 
-from fastapi import FastAPI, Request
+from typing import Annotated
+from fastapi import FastAPI, Request, Depends, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlmodel import select
 
 from  db import SessionDep, create_all_tables
@@ -22,10 +25,15 @@ async def log_request_time(request: Request, call_next):
     print(f"Request: {request.url} - Complete in {process_time:.4f} seconds")
     return response
 
+security = HTTPBasic()
 
 @app.get("/")
-async def root():
-    return {"message": "Welcome to the FastAPI project!"}
+async def root(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
+    print(credentials)
+    if credentials.username != "admin" or credentials.password != "admin":
+        return {"message": f"Hola, {credentials.username}!"}
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 @app.post('/invoices')
