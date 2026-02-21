@@ -5,7 +5,7 @@ from sqlmodel import Session, create_engine, SQLModel
 sqlite_name = "db.sqlite3"
 sqlite_url = f"sqlite:///{sqlite_name}"
 
-engine = create_engine(sqlite_url, echo=True)
+engine = create_engine(sqlite_url)
 
 def create_all_tables(app: FastAPI):
     SQLModel.metadata.create_all(engine)
